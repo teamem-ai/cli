@@ -1,0 +1,125 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: required / lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out CLI repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          path: cli
+
+      - name: Check out teamem-server (for @teamem/schema dependency)
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: teamem-ai/teamem-server
+          path: teamem-server
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: cli/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: cli
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        working-directory: cli
+        run: pnpm lint
+
+  typecheck:
+    name: required / typecheck
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out CLI repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          path: cli
+
+      - name: Check out teamem-server (for @teamem/schema dependency)
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: teamem-ai/teamem-server
+          path: teamem-server
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: pnpm
+          cache-dependency-path: cli/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: cli
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        working-directory: cli
+        run: pnpm typecheck
+
+  test:
+    name: required / test (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        node:
+          - '20'
+          - '22'
+    steps:
+      - name: Check out CLI repository
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          path: cli
+
+      - name: Check out teamem-server (for @teamem/schema dependency)
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        with:
+          repository: teamem-ai/teamem-server
+          path: teamem-server
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
+
+      - name: Set up Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ matrix.node }}
+          cache: pnpm
+          cache-dependency-path: cli/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: cli
+        run: pnpm install --frozen-lockfile
+
+      - name: Test
+        working-directory: cli
+        run: pnpm test

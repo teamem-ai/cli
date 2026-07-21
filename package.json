@@ -1,0 +1,39 @@
+{
+  "name": "teamem",
+  "version": "0.0.0",
+  "description": "teamem CLI — bring team knowledge to your AI coding agent (MIT)",
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "teamem": "./dist/index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/teamem-ai/cli.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@teamem/schema": "file:../teamem-server/packages/schema",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "eslint": "^9.31.0",
+    "tsup": "^8.4.0",
+    "typescript": "^5.8.3",
+    "typescript-eslint": "^8.36.0",
+    "vitest": "^3.2.7"
+  }
+}
