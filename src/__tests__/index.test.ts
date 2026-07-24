@@ -53,10 +53,13 @@ describe('run', () => {
     expect(result.output).toBe('0.0.0');
   });
 
-  it('handles init command (placeholder)', () => {
+  it('handles init command and scans the current repo', () => {
     const result = run(['init']);
     expect(result.exitCode).toBe(0);
-    expect(result.output).toContain('not yet implemented');
+    // The actual working directory is a git repo, so init should scan it.
+    expect(result.output).toContain('Repository:');
+    expect(result.output).toContain('Commit:');
+    expect(result.output).toContain('Scanned files:');
   });
 
   it('returns error for unknown command', () => {
@@ -76,5 +79,6 @@ describe('run', () => {
     const result = run(['init']);
     expect(result.exitCode).toBe(0);
     expect(result.output).not.toContain('Unknown command');
+    expect(result.output).toContain('Repository:');
   });
 });
