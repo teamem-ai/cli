@@ -18,3 +18,4 @@ coverage/
 
 # OS noise
 .DS_Store
+.pi/extensions/emdash-hook.ts
