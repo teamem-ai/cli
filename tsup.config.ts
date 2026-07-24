@@ -8,5 +8,4 @@ export default defineConfig({
   sourcemap: true,
   dts: true,
   shims: true,
-  noExternal: [/@teamem\/schema/],
 });

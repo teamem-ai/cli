@@ -1,9 +1,7 @@
 #!/usr/bin/env node
-import { CONTRACT_STATUS } from '@teamem/schema';
 
 export function showHelp(): string {
   return `teamem — bring team knowledge to your AI coding agent
-  schema contract: ${CONTRACT_STATUS}
 
 Usage:
   teamem <command> [options]

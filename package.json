@@ -20,14 +20,12 @@
   },
   "scripts": {
     "build": "tsup",
+    "check:boundaries": "node scripts/check-dependency-boundary.mjs",
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run --passWithNoTests"
   },
-  "dependencies": {
-    "@teamem/schema": "file:../teamem-server/packages/schema",
-    "zod": "^4.4.3"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@types/node": "^26.1.1",
     "eslint": "^9.31.0",
