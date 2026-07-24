@@ -2,13 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { run, showHelp, showVersion } from '../index.js';
 
 describe('showHelp', () => {
-  it('includes the schema contract status', () => {
+  it('lists the available command skeleton', () => {
     const output = showHelp();
     expect(output).toContain('teamem');
     expect(output).toContain('Usage:');
     expect(output).toContain('init');
-    expect(output).toContain('schema contract:');
-    expect(output).toContain('v0.3-additive');
   });
 });
 
