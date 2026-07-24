@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { scanRepository } from './commands/init/scan.js';
+
 export function showHelp(): string {
   return `teamem — bring team knowledge to your AI coding agent
 
@@ -7,7 +9,7 @@ Usage:
   teamem <command> [options]
 
 Commands:
-  init        Initialize teamem in the current directory (placeholder)
+  init        Scan current repository and generate cli_init events
   help        Show this help
 
 Options:
@@ -30,7 +32,28 @@ export function run(args: string[]): { output: string; exitCode: number } {
   }
 
   if (args[0] === 'init') {
-    return { output: 'init: not yet implemented (M1-CLI-02)', exitCode: 0 };
+    try {
+      const cwd = process.cwd();
+      const result = scanRepository(cwd);
+      const lines: string[] = [
+        `Repository: ${result.repo}`,
+        `Commit:     ${result.commitSha}`,
+        `Scanned at: ${result.scannedAt}`,
+        `Files:      ${result.files.length}`,
+      ];
+      if (result.files.length > 0) {
+        lines.push('');
+        lines.push('Scanned files:');
+        for (const f of result.files) {
+          const truncatedFlag = f.truncated ? ' [truncated]' : '';
+          lines.push(`  ${f.path}${truncatedFlag}`);
+        }
+      }
+      return { output: lines.join('\n'), exitCode: 0 };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      return { output: `init failed: ${message}`, exitCode: 1 };
+    }
   }
 
   return {
