@@ -54,7 +54,15 @@ export interface PushResult {
   compilationJobIds: string[];
   /** Aggregate job status (all must be completed for "completed"). */
   jobStatus: string | null;
-  /** Number of concepts/pages created (from completed job events). */
+  /**
+   * Number of DISTINCT concept pages this run touched.
+   *
+   * Counted over a set, not summed per event: F2 merges related events into
+   * one page, so the same concept UUID legitimately appears in several
+   * per-event results. Summing them inflated the number exactly when merging
+   * worked well, which is backwards — "pages did not grow" is the behaviour
+   * this tool exists to demonstrate.
+   */
   pagesCreated: number;
   /** Whether any compilation was a duplicate. */
   compilationDuplicate: boolean;
@@ -431,16 +439,22 @@ export async function pushEvents(
 
   // ---- 4. Build result summary ----
 
-  let pagesCreated = 0;
+  // Distinct concept UUIDs, not a per-event sum. Two events that F2 merged
+  // into one page both report that page's UUID; counting them twice reports
+  // more pages than exist.
+  const touchedConceptIds = new Set<string>();
   for (const job of finalJobs) {
     if (job.status === 'completed' && job.events) {
       for (const ev of job.events) {
         if (ev.status === 'compiled') {
-          pagesCreated += ev.conceptIds.length;
+          for (const conceptId of ev.conceptIds) {
+            touchedConceptIds.add(conceptId);
+          }
         }
       }
     }
   }
+  const pagesCreated = touchedConceptIds.size;
 
   // Aggregate status: if all completed → "completed", if any failed → "failed", etc.
   const statuses = finalJobs.map((j) => j.status);
