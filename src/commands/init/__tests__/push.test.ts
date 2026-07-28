@@ -277,6 +277,103 @@ describe('pushEvents', () => {
 
   // --- Batch splitting ---
 
+  it('counts DISTINCT pages when F2 merges several events into one', async () => {
+    // The value the tool is meant to show is "pages did not grow": F2 merges
+    // related events into a single concept, so the same UUID appears in
+    // several per-event results. Summing them reported more pages than exist,
+    // and got worse the better merging worked. Observed against a real stack:
+    // 3 events, 2 actual pages, "Pages: 3".
+    resetState();
+
+    const files = makeScannedFiles(3);
+    let eventIdCounter = 0;
+
+    serverHandler = (req, res) => {
+      if (req.method === 'POST') {
+        let body = '';
+        req.on('data', (c) => (body += c));
+        req.on('end', () => {
+          const parsed = JSON.parse(body) as Record<string, unknown>;
+          if (req.url === '/v1/events/batch') {
+            const events = parsed.events as unknown[];
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(
+              JSON.stringify({
+                requestId: 'req_batch_merge',
+                batchJobId: null,
+                duplicate: false,
+                results: events.map((_, i) => ({
+                  index: i,
+                  status: 'accepted' as const,
+                  eventId: `evt_${++eventIdCounter}`,
+                })),
+              }),
+            );
+          } else if (req.url === '/v1/compilations') {
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(
+              JSON.stringify({
+                requestId: 'req_comp_merge',
+                compilationJobId: VALID_UUID_7,
+                duplicate: false,
+                results: (parsed.eventIds as string[]).map((eid) => ({
+                  eventId: eid,
+                  status: 'queued' as const,
+                })),
+              }),
+            );
+          } else {
+            res.writeHead(404);
+            res.end();
+          }
+        });
+      } else if (req.method === 'GET' && req.url === `/v1/jobs/${VALID_UUID_7}`) {
+        res.writeHead(200, { 'Content-Type': 'application/json' });
+        res.end(
+          JSON.stringify({
+            requestId: 'req_job_merge',
+            data: {
+              id: VALID_UUID_7,
+              projectId: 'prj_1',
+              status: 'completed',
+              attempts: 1,
+              initiatedBy: {
+                kind: 'credential' as const,
+                credentialId: 'key_cred1',
+                principalId: null,
+              },
+              eventCount: 3,
+              events: [
+                // Two events merged into ONE page; the third made its own.
+                { eventId: 'evt_1', status: 'compiled' as const, conceptIds: [CONCEPT_UUID_1] },
+                { eventId: 'evt_2', status: 'compiled' as const, conceptIds: [CONCEPT_UUID_1] },
+                { eventId: 'evt_3', status: 'compiled' as const, conceptIds: [CONCEPT_UUID_2] },
+              ],
+              conceptIds: [CONCEPT_UUID_1, CONCEPT_UUID_2],
+              createdAt: new Date().toISOString(),
+              startedAt: new Date().toISOString(),
+              finishedAt: new Date().toISOString(),
+            },
+          }),
+        );
+      } else {
+        res.writeHead(404);
+        res.end();
+      }
+    };
+
+    const result = await pushEvents(files, {
+      url: serverUrl,
+      token: 'tm_test_token_123',
+      pollIntervalMs: TEST_POLL_MS,
+      projectId: 'prj_1',
+    });
+
+    expect(result.jobStatus).toBe('completed');
+    // Three compiled events, two distinct pages. Summing would report 3.
+    expect(result.pagesCreated).toBe(2);
+  });
+
   it('splits events into batches of ≤500 and also batches compilations', async () => {
     resetState();
 
