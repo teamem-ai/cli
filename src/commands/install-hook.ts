@@ -86,7 +86,7 @@ export function buildHookCommand(
 
   return [
     `curl -s -H 'Authorization: Bearer ${safeToken}'`,
-    `'${baseUrl}/v1/context?projectId=${project}'`,
+    `'${baseUrl}/v1/context?project_id=${project}'`,
     `2>/dev/null`,
     `| python3 -c "exec(__import__('base64').b64decode('${encoded}').decode())"`,
     `2>/dev/null`,
@@ -96,37 +96,41 @@ export function buildHookCommand(
 }
 
 /**
- * Check whether a hook entry matches our teamem SessionStart pattern.
+ * Check whether a hook command matches our teamem SessionStart pattern.
  * Returns true when the command contains our marker with matching URL+project.
  */
-function isTeamemHook(command: string, url: string, project: string): boolean {
+function isTeamemHookCommand(command: string, url: string, project: string): boolean {
   const baseUrl = url.replace(/\/$/, '');
   const expectedMarker = `# ${TEAMEM_MARKER}:${baseUrl}:${project}`;
   return command.includes(expectedMarker);
-}
-
-/**
- * Check whether any hook command in a list is a teamem hook for the given
- * URL+project.
- */
-function findTeamemHookIndex(
-  commands: string[],
-  url: string,
-  project: string,
-): number {
-  return commands.findIndex((cmd) => isTeamemHook(cmd, url, project));
 }
 
 // ---------------------------------------------------------------------------
 // Settings file helpers
 // ---------------------------------------------------------------------------
 
+/**
+ * Claude Code settings schema for hooks.
+ *
+ * Each event (SessionStart, PreToolUse, etc.) maps to an array of handler
+ * objects. Each handler has a `matcher` and a `hooks` array of individual
+ * hook definitions: `{ type: "command", command: "..." }`.
+ *
+ * Reference: https://code.claude.com/docs/en/hooks-guide
+ */
+interface ClaudeHookDefinition {
+  type: 'command';
+  command: string;
+}
+
+interface ClaudeHookHandler {
+  matcher?: string;
+  hooks: ClaudeHookDefinition[];
+}
+
 interface ClaudeSettings {
   hooks?: {
-    SessionStart?: Array<{
-      matcher?: string;
-      command: string;
-    }>;
+    SessionStart?: ClaudeHookHandler[];
   };
   [key: string]: unknown;
 }
@@ -180,20 +184,34 @@ export function installHook(options: InstallHookOptions): InstallHookResult {
 
   // Ensure hooks.SessionStart array exists.
   const hooks = (settings.hooks = settings.hooks ?? {});
-  const sessionStartHooks = (hooks.SessionStart =
+  const sessionStartHandlers: ClaudeHookHandler[] = (hooks.SessionStart =
     hooks.SessionStart ?? []);
 
-  // Check for existing matching hook.
-  const existingCommands = sessionStartHooks.map((h) => h.command);
-  const existingIndex = findTeamemHookIndex(existingCommands, url, project);
+  // Build the hook definition.
+  const hookDef: ClaudeHookDefinition = { type: 'command', command };
 
-  if (existingIndex !== -1) {
+  // Find an existing handler that contains our marker.
+  let existingHandlerIndex = -1;
+  let existingHookIndex = -1;
+
+  for (let i = 0; i < sessionStartHandlers.length; i++) {
+    const handler = sessionStartHandlers[i]!;
+    for (let j = 0; j < handler.hooks.length; j++) {
+      if (
+        isTeamemHookCommand(handler.hooks[j]!.command, url, project)
+      ) {
+        existingHandlerIndex = i;
+        existingHookIndex = j;
+        break;
+      }
+    }
+    if (existingHandlerIndex !== -1) break;
+  }
+
+  if (existingHandlerIndex !== -1 && existingHookIndex !== -1) {
     // A matching hook already exists — update its command (token may have
-    // changed) but keep the position.
-    sessionStartHooks[existingIndex] = {
-      matcher: '',
-      command,
-    };
+    // changed) but keep position and surrounding entries.
+    sessionStartHandlers[existingHandlerIndex]!.hooks[existingHookIndex] = hookDef;
     writeSettings(hooksPath, settings);
 
     return {
@@ -212,17 +230,17 @@ export function installHook(options: InstallHookOptions): InstallHookResult {
     };
   }
 
-  // Append the new hook entry.
-  sessionStartHooks.push({
+  // Append a new handler with our hook.
+  sessionStartHandlers.push({
     matcher: '',
-    command,
+    hooks: [hookDef],
   });
   writeSettings(hooksPath, settings);
 
-  const otherHookCount = sessionStartHooks.length - 1;
+  const otherHandlerCount = sessionStartHandlers.length - 1;
   const otherNote =
-    otherHookCount > 0
-      ? `\n\n${otherHookCount} other SessionStart hook(s) were preserved — they are unchanged.`
+    otherHandlerCount > 0
+      ? `\n\n${otherHandlerCount} other SessionStart hook handler(s) were preserved — they are unchanged.`
       : '';
 
   return {
