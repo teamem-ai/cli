@@ -2,6 +2,7 @@
 
 import { scanRepository } from './commands/init/scan.js';
 import { pushEvents } from './commands/init/push.js';
+import { installHook } from './commands/install-hook.js';
 
 export function showHelp(): string {
   return `teamem — bring team knowledge to your AI coding agent
@@ -10,14 +11,20 @@ Usage:
   teamem <command> [options]
 
 Commands:
-  init        Scan current repository and push knowledge to teamem portal
-  help        Show this help
+  init               Scan current repository and push knowledge to teamem portal
+  install-hook       Install a read-only SessionStart hook for Claude Code
+  help               Show this help
 
 Options:
   --help, -h  Show this help
   --version   Show version
 
 Init options:
+  --url       Portal base URL (e.g. https://api.teamem.ai)
+  --token     API token (tm_...)
+  --project   Project ID (prj_...)
+
+Install-hook options:
   --url       Portal base URL (e.g. https://api.teamem.ai)
   --token     API token (tm_...)
   --project   Project ID (prj_...)
@@ -79,6 +86,51 @@ export async function run(args: string[]): Promise<{ output: string; exitCode: n
 
   if (args[0] === '--version' || args[0] === '-v') {
     return { output: showVersion(), exitCode: 0 };
+  }
+
+  if (args[0] === 'install-hook') {
+    const { flags, rest } = parseInitArgs(args.slice(1));
+
+    if (rest.length > 0) {
+      return {
+        output: `Unexpected arguments: ${rest.join(' ')}\nRun "teamem install-hook --help" for usage.`,
+        exitCode: 1,
+      };
+    }
+
+    // Validate required flags.
+    const missing: string[] = [];
+    if (!flags.url) missing.push('--url');
+    if (!flags.token) missing.push('--token');
+    if (!flags.project) missing.push('--project');
+
+    if (missing.length > 0) {
+      return {
+        output: `Missing required flags: ${missing.join(', ')}\nAll three (--url, --token, --project) are required to install a hook.`,
+        exitCode: 1,
+      };
+    }
+
+    // At this point all three flags are present (validated above).
+    const url = flags.url!;
+    const token = flags.token!;
+    const project = flags.project!;
+
+    try {
+      const result = installHook({
+        url,
+        token,
+        project,
+      });
+      return { output: result.message, exitCode: 0 };
+    } catch (err: unknown) {
+      const message = err instanceof Error ? err.message : String(err);
+      // Safety: ensure token is not leaked in error messages.
+      const safeMessage = flags.token
+        ? message.split(flags.token).join('***')
+        : message;
+      return { output: `install-hook failed: ${safeMessage}`, exitCode: 1 };
+    }
   }
 
   if (args[0] === 'init') {
