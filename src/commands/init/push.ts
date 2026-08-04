@@ -35,7 +35,7 @@ const MAX_POLL_ATTEMPTS = 300; // 10 minutes at 2s intervals
 export interface PushOptions {
   /** Portal base URL (e.g. https://api.teamem.ai). */
   url: string;
-  /** API token (tm_...). Must not be logged or included in errors. */
+  /** API token (tok_...). Must not be logged or included in errors. */
   token: string;
   /** Target project ID (prj_...). */
   projectId: string;

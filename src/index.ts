@@ -21,12 +21,12 @@ Options:
 
 Init options:
   --url       Portal base URL (e.g. https://api.teamem.ai)
-  --token     API token (tm_...)
+  --token     API token (tok_...)
   --project   Project ID (prj_...)
 
 Install-hook options:
   --url       Portal base URL (e.g. https://api.teamem.ai)
-  --token     API token (tm_...)
+  --token     API token (tok_...)
   --project   Project ID (prj_...)
 `;
 }

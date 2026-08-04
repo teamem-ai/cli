@@ -29,7 +29,7 @@ You also need three values from your portal (see [Getting started](#getting-star
 | Flag | What it is | Example |
 | --- | --- | --- |
 | `--url` | Your portal's base URL | `http://localhost:8080` or `https://api.teamem.ai` |
-| `--token` | An API key minted in the portal | `tm_...` |
+| `--token` | An API key minted in the portal | `tok_...` |
 | `--project` | The project the key is scoped to | `prj_...` |
 
 ---
@@ -85,7 +85,7 @@ npx teamem --help
 
 2. **Mint an API key.** In the portal go to **Settings → API keys** and create a
    key with the **`read`** and **`events:write`** scopes (write lets `init` push
-   events; read lets the hook fetch context). Copy the `tm_...` token — it's
+   events; read lets the hook fetch context). Copy the `tok_...` token — it's
    shown only once.
 
 3. **Note the project id** (`prj_...`) the key is bound to — it's shown next to
@@ -103,7 +103,7 @@ npx teamem --help
    ```bash
    teamem init \
      --url http://localhost:8080 \
-     --token tm_your_token_here \
+     --token tok_your_token_here \
      --project prj_your_project_id
    ```
 
@@ -112,7 +112,7 @@ npx teamem --help
    ```bash
    teamem install-hook \
      --url http://localhost:8080 \
-     --token tm_your_token_here \
+     --token tok_your_token_here \
      --project prj_your_project_id
    ```
 
@@ -192,7 +192,7 @@ teamem --version     # or -v
 | Option | Applies to | Description |
 | --- | --- | --- |
 | `--url <url>` | `init`, `install-hook` | Portal base URL |
-| `--token <tm_...>` | `init`, `install-hook` | API key (kept out of logs and error messages) |
+| `--token <tok_...>` | `init`, `install-hook` | API key (kept out of logs and error messages) |
 | `--project <prj_...>` | `init`, `install-hook` | Target project id |
 | `--help`, `-h` | global | Show help |
 | `--version`, `-v` | global | Show the CLI version |
