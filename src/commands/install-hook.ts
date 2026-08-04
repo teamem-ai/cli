@@ -14,7 +14,7 @@ import { join, dirname } from 'node:path';
 export interface InstallHookOptions {
   /** Portal base URL (e.g. https://api.teamem.ai). */
   url: string;
-  /** API token (tm_...). Must not be logged or included in errors. */
+  /** API token (tok_...). Must not be logged or included in errors. */
   token: string;
   /** Target project ID (prj_...). */
   project: string;
@@ -91,7 +91,7 @@ export function buildHookCommand(
 
   return [
     `curl -s -H 'Authorization: Bearer ${safeToken}'`,
-    `'${baseUrl}/v1/context?project_id=${project}'`,
+    `'${baseUrl}/v1/context?projectId=${project}'`,
     `2>/dev/null`,
     `| python3 -c "exec(__import__('base64').b64decode('${encoded}').decode())"`,
     `2>/dev/null`,

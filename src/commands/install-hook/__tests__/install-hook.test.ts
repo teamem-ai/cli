@@ -62,14 +62,16 @@ function getFirstHookCommand(settingsPath: string): string {
 // ---------------------------------------------------------------------------
 
 describe('buildHookCommand', () => {
-  it('includes the base URL, token, and project_id in the command', () => {
+  it('includes the base URL, token, and projectId in the command', () => {
     const cmd = buildHookCommand(
       'https://api.teamem.ai',
       'tm_test',
       'prj_123',
     );
 
-    expect(cmd).toContain('https://api.teamem.ai/v1/context?project_id=prj_123');
+    // The server's /v1/context reads the `projectId` query param (camelCase)
+    // and requires it — snake_case project_id yields a 400.
+    expect(cmd).toContain('https://api.teamem.ai/v1/context?projectId=prj_123');
     expect(cmd).toContain("Authorization: Bearer tm_test");
     expect(cmd).toContain('# teamem-install-hook:https://api.teamem.ai:prj_123');
   });
@@ -187,13 +189,14 @@ describe('installHook', () => {
     expect(hook.command).toContain('tm_test_token_abc123');
   });
 
-  it('writes the correct project_id query parameter in the command', () => {
+  it('writes the correct projectId query parameter in the command', () => {
     const opts = makeOptions({ hooksPath: hooksPath(testDir) });
     installHook(opts);
 
     const cmd = getFirstHookCommand(hooksPath(testDir));
-    expect(cmd).toContain('project_id=prj_test_001');
-    expect(cmd).not.toContain('projectId=prj_test_001');
+    // Server contract is camelCase `projectId`.
+    expect(cmd).toContain('projectId=prj_test_001');
+    expect(cmd).not.toContain('project_id=prj_test_001');
   });
 
   it('creates the parent directory if it does not exist', () => {
@@ -371,8 +374,8 @@ describe('installHook', () => {
     const commands = parsed.hooks.SessionStart.map(
       (h: { hooks: Array<{ command: string }> }) => h.hooks[0]!.command,
     );
-    expect(commands[0]).toContain('project_id=prj_alpha');
-    expect(commands[1]).toContain('project_id=prj_beta');
+    expect(commands[0]).toContain('projectId=prj_alpha');
+    expect(commands[1]).toContain('projectId=prj_beta');
   });
 
   it('allows separate teamem hooks for different URLs', () => {
