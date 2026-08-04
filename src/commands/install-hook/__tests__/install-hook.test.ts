@@ -95,6 +95,25 @@ describe('buildHookCommand', () => {
     expect(cmd).toContain('python3');
   });
 
+  it('includes hookEventName in every output branch (Claude Code requires it)', () => {
+    const cmd = buildHookCommand(
+      'https://api.teamem.ai',
+      'tm_test',
+      'prj_123',
+    );
+    // The shell fallback echo carries hookEventName literally.
+    expect(cmd).toContain('"hookEventName":"SessionStart"');
+
+    // The two python branches (success + except) are base64-encoded inside the
+    // command; decode and confirm each hookSpecificOutput carries hookEventName.
+    const m = cmd.match(/b64decode\('([A-Za-z0-9+/=]+)'\)/);
+    expect(m).not.toBeNull();
+    const decoded = Buffer.from(m![1]!, 'base64').toString('utf8');
+    const occurrences =
+      decoded.split("'hookEventName':'SessionStart'").length - 1;
+    expect(occurrences).toBe(2);
+  });
+
   it('escapes single quotes in token', () => {
     const cmd = buildHookCommand(
       'https://api.teamem.ai',

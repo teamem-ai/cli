@@ -68,14 +68,19 @@ export function buildHookCommand(
 
   // Use python3 for robust JSON processing (available on macOS and most
   // Linux distributions). Fall back to a plain text message when it fails.
+  //
+  // Claude Code validates SessionStart hook output: `hookSpecificOutput` MUST
+  // carry `hookEventName: "SessionStart"` alongside `additionalContext`, or the
+  // session fails with "hookSpecificOutput is missing required field
+  // hookEventName". Every branch below includes it.
   const pythonScript =
     "import sys,json\n" +
     "try:\n" +
     " d=json.load(sys.stdin)\n" +
     " ctx=d.get('data',d)\n" +
-    " print(json.dumps({'hookSpecificOutput':{'additionalContext':json.dumps(ctx,indent=2,ensure_ascii=False)}}))\n" +
+    " print(json.dumps({'hookSpecificOutput':{'hookEventName':'SessionStart','additionalContext':json.dumps(ctx,indent=2,ensure_ascii=False)}}))\n" +
     "except Exception as e:\n" +
-    " print(json.dumps({'hookSpecificOutput':{'additionalContext':'Team knowledge unavailable: '+str(e)}}))";
+    " print(json.dumps({'hookSpecificOutput':{'hookEventName':'SessionStart','additionalContext':'Team knowledge unavailable: '+str(e)}}))";
 
   const encoded = Buffer.from(pythonScript).toString('base64');
 
@@ -90,7 +95,7 @@ export function buildHookCommand(
     `2>/dev/null`,
     `| python3 -c "exec(__import__('base64').b64decode('${encoded}').decode())"`,
     `2>/dev/null`,
-    `|| echo '{"hookSpecificOutput":{"additionalContext":"Team knowledge unavailable"}}'`,
+    `|| echo '{"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"Team knowledge unavailable"}}'`,
     `# ${TEAMEM_MARKER}:${baseUrl}:${project}`,
   ].join(' ');
 }
